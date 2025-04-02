@@ -36,7 +36,7 @@ async function takeScreenshot() {
   });
 
   const page = await browser.newPage();
-  await page.setViewport({ width: 1000, height: 950 });
+  await page.setViewport({ width: 800, height: 480 });
 
   // 1) Login
   await page.goto(HA_BASE_URL, { waitUntil: 'domcontentloaded' });
@@ -67,7 +67,7 @@ async function takeScreenshot() {
   // 4) Grayscale + resize
   await sharp(SCREENSHOT_PNG)
     .grayscale()
-    .resize(1000, 950)
+    .resize(800, 480)
     .toFile(SCREENSHOT_PROCESSED);
 
   // 5) Convertir en BMP
