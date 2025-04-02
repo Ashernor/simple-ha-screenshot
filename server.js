@@ -33,6 +33,17 @@ async function takeScreenshot() {
 
   const page = await browser.newPage();
   await page.setViewport({ width: 800, height: 480 });
+  await page.emulateMediaFeatures([
+    { name: 'prefers-color-scheme', value: 'light' }
+  ]);
+
+  await page.addStyleTag({
+    content: `
+      img {
+        filter: invert(100%);
+      }
+    `,
+  });
 
   await page.goto(HA_BASE_URL, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('input[name="username"]', { timeout: 20000 });
@@ -43,8 +54,9 @@ async function takeScreenshot() {
   await page.click('mwc-button[raised]');
   await delay(5000);
 
-  const finalUrl = `${HA_BASE_URL}${HA_PATH}?kiosk`;
+  const finalUrl = `${HA_BASE_URL}${HA_PATH}?kiosk&theme=clear`;
   await page.goto(finalUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+  await delay(2000); // Wait 2 seconds to allow page scripts to load fully
   await page.screenshot({ path: SCREENSHOT_PNG });
   await browser.close();
 
