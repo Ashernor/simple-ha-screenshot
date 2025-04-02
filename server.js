@@ -64,18 +64,21 @@ async function takeScreenshot() {
   await page.screenshot({ path: SCREENSHOT_PNG });
   await browser.close();
 
-  // 4) Grayscale + resize
+  // 4) Traitement avec sharp
+  console.log('[TRAITEMENT] Conversion PNG -> niveaux de gris...');
   await sharp(SCREENSHOT_PNG)
-    .grayscale()
     .resize(800, 480)
+    .grayscale()
+    .threshold(128) // optionnel, binaire en 0/255
     .toFile(SCREENSHOT_PROCESSED);
 
-  // 5) Convertir en BMP
-  exec(`convert ${SCREENSHOT_PROCESSED} BMP3:${SCREENSHOT_BMP}`, (err) => {
+  // 5) Conversion BMP 1-bit avec ImageMagick
+  console.log('[CONVERSION] Conversion en BMP 1-bit...');
+  exec(`convert ${SCREENSHOT_PROCESSED} -monochrome BMP3:${SCREENSHOT_BMP}`, (err) => {
     if (err) {
       console.error(`❌ Échec de la conversion : ${err.message}`);
     } else {
-      console.log(`✅ Screenshot BMP créé : ${SCREENSHOT_BMP} // http://localhost:${PORT}/screenshot.bmp`);
+      console.log(`✅ BMP optimisé prêt : ${SCREENSHOT_BMP} (http://localhost:${PORT}/screenshot.bmp)`);
     }
   });
 }
