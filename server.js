@@ -17,6 +17,7 @@ const OUTPUT_DIR = './output';
 const SCREENSHOT_PNG = path.join(OUTPUT_DIR, 'screenshot.png');
 const SCREENSHOT_PROCESSED = path.join(OUTPUT_DIR, 'processed.png');
 const SCREENSHOT_BMP = path.join(OUTPUT_DIR, 'screenshot.bmp');
+const SCREENSHOT_RAW = path.join(OUTPUT_DIR, 'screenshot.raw');
 
 // Vérifie/démarre l'appli Express
 const app = express();
@@ -58,19 +59,23 @@ async function takeScreenshot() {
   await page.screenshot({ path: SCREENSHOT_PNG });
   await browser.close();
 
-  // Traitement avec sharp : resize, grayscale, modulate, toColourspace
-  await sharp(SCREENSHOT_PNG)
+  // Traitement avec sharp : resize, grayscale, raw output
+  const rawBuffer = await sharp(SCREENSHOT_PNG)
     .resize(800, 480)
-    .toFile(SCREENSHOT_PROCESSED);
+    .grayscale()
+    .raw()
+    .toBuffer();
 
-  // Convertir en BMP (1-bit compatible ESP)
-  exec(`convert ${SCREENSHOT_PROCESSED} -dither FloydSteinberg -colors 4 -colorspace Gray BMP3:${SCREENSHOT_BMP}`, (err) => {
-    if (err) {
-      console.error(`❌ Échec de la conversion : ${err.message}`);
-    } else {
-      console.log(`✅ Screenshot BMP créé : ${SCREENSHOT_BMP}`);
-    }
-  });
+  console.log('[CONVERT] Conversion en 4 niveaux de gris...');
+  const grayBuffer = Buffer.alloc((800 * 480) / 2); // 2 pixels par octet (4 niveaux = 2 bits par pixel)
+  for (let i = 0; i < rawBuffer.length; i += 2) {
+    const p1 = Math.floor((rawBuffer[i] / 256) * 4) & 0x03;
+    const p2 = Math.floor((rawBuffer[i + 1] / 256) * 4) & 0x03;
+    grayBuffer[i / 2] = (p1 << 6) | (p2 << 4); // encode deux pixels (2 bits chacun)
+  }
+
+  fs.writeFileSync(SCREENSHOT_RAW, grayBuffer);
+  console.log(`✅ Buffer RAW généré : ${SCREENSHOT_RAW}`);
 }
 
 // Crée le dossier output si besoin
@@ -93,6 +98,10 @@ app.use(express.static(OUTPUT_DIR));
 // On peut aussi faire un endpoint direct :
 app.get('/image', (req, res) => {
   res.sendFile(path.resolve(SCREENSHOT_BMP));
+});
+
+app.get('/image.raw', (req, res) => {
+  res.sendFile(path.resolve(SCREENSHOT_RAW));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
