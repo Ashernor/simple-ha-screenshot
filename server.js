@@ -41,44 +41,34 @@ async function takeScreenshot() {
   // 1) Login
   await page.goto(HA_BASE_URL, { waitUntil: 'domcontentloaded' });
 
-  // Champ username
   await page.waitForSelector('input[name="username"]', { timeout: 20000 });
   await page.type('input[name="username"]', HA_USER);
 
-  // Champ password
   await page.waitForSelector('input[name="password"]', { timeout: 20000 });
   await page.type('input[name="password"]', HA_PASS);
 
-  // Bouton "Se connecter"
   await page.waitForSelector('mwc-button[raised]', { timeout: 20000 });
   await page.click('mwc-button[raised]');
-
-  // On attend un peu que la session soit prise en compte
   await delay(5000);
 
-  // 2) Aller sur la page voulue
   const finalUrl = `${HA_BASE_URL}${HA_PATH}?kiosk`;
   await page.goto(finalUrl, { waitUntil: 'networkidle2', timeout: 60000 });
 
-  // 3) Screenshot en PNG
+  // Screenshot PNG
   await page.screenshot({ path: SCREENSHOT_PNG });
   await browser.close();
 
-  // 4) Traitement avec sharp
-  console.log('[TRAITEMENT] Conversion PNG -> niveaux de gris...');
+  // Traitement avec sharp : resize, grayscale, modulate, toColourspace
   await sharp(SCREENSHOT_PNG)
     .resize(800, 480)
-    .grayscale()
-    .threshold(128) // optionnel, binaire en 0/255
     .toFile(SCREENSHOT_PROCESSED);
 
-  // 5) Conversion BMP 1-bit avec ImageMagick
-  console.log('[CONVERSION] Conversion en BMP 1-bit...');
-  exec(`convert ${SCREENSHOT_PROCESSED} -monochrome BMP3:${SCREENSHOT_BMP}`, (err) => {
+  // Convertir en BMP (1-bit compatible ESP)
+  exec(`convert ${SCREENSHOT_PROCESSED} -dither FloydSteinberg -colors 4 -colorspace Gray BMP3:${SCREENSHOT_BMP}`, (err) => {
     if (err) {
       console.error(`❌ Échec de la conversion : ${err.message}`);
     } else {
-      console.log(`✅ BMP optimisé prêt : ${SCREENSHOT_BMP} (http://localhost:${PORT}/screenshot.bmp)`);
+      console.log(`✅ Screenshot BMP créé : ${SCREENSHOT_BMP}`);
     }
   });
 }
