@@ -102,6 +102,6 @@ app.get('/image', (req, res) => {
   res.sendFile(path.resolve(SCREENSHOT_BMP));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
 });
