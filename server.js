@@ -37,13 +37,6 @@ async function takeScreenshot() {
     { name: 'prefers-color-scheme', value: 'light' }
   ]);
 
-  await page.addStyleTag({
-    content: `
-      img {
-        filter: invert(100%);
-      }
-    `,
-  });
 
   await page.goto(HA_BASE_URL, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('input[name="username"]', { timeout: 20000 });
@@ -56,6 +49,18 @@ async function takeScreenshot() {
 
   const finalUrl = `${HA_BASE_URL}${HA_PATH}?kiosk&theme=clear`;
   await page.goto(finalUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+  await delay(500);
+  await page.addStyleTag({
+    content: `
+      body, a, span, div, * {
+        font-weight: 900 !important;
+        font-size: 20px !important;
+        color: black !important;
+        text-shadow: 0 0 1px black;
+      }
+      `
+  });
+
   await delay(2000); // Wait 2 seconds to allow page scripts to load fully
   await page.screenshot({ path: SCREENSHOT_PNG });
   await browser.close();
@@ -65,7 +70,7 @@ async function takeScreenshot() {
   await sharp(SCREENSHOT_PNG)
     .resize(800, 480)
     .grayscale()
-    .threshold(128) // Converts to black/white
+    //.threshold(128, { dithering: true }) // Enable dithering for better black/white clarity
     .toFile(SCREENSHOT_PROCESSED);
 
   exec(`convert ${SCREENSHOT_PROCESSED} -type bilevel BMP3:${SCREENSHOT_BMP}`, (err) => {
